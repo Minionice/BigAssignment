@@ -75,7 +75,11 @@ public class RSA2 {
         String msg = convertMessageToNum(M);
         BigInteger msgNum = new BigInteger(msg);
         BigInteger M_ToPow_E = msgNum.modPow(E, N);
-        return M_ToPow_E.toString();
+        String result = M_ToPow_E.toString();
+        while (result.length() < 399) {
+            result = "0" + result;
+        }
+        return result;
     }
 
     /* This method is responsible for taking the input String 'str' and
