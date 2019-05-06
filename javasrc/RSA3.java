@@ -5,11 +5,14 @@
 ** message after it has been decrypted.
 **
 ** Authors: Sean McTiernan and Mario Roani
+** Edited by: Daniel Tartaglione and Aaron Deák
 ** April 27, 2019
 */
 
 import java.util.Scanner;
 import java.math.BigInteger;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 public class RSA3 {
 
@@ -24,7 +27,7 @@ public class RSA3 {
     // CONSTRUCTOR
     // ===========
     
-    /* An instance of this class initializes two numbers p and q 
+    /* An instance of this class initializes two numbers p and q
     ** to be 200 digit primes. It then calculates all necessary
     ** values to perform RSA encryption (and decryption).
     */
@@ -39,21 +42,37 @@ public class RSA3 {
         n = p.multiply(q);
     }
 
-    public static void main(String[] args) {
-        String encryptedMsg, decryptedMsg;
-        String QUIT = "QUIT";
+    public static void main(String[] args) throws FileNotFoundException {
+        String encryptedMsg = "";
+        String decryptedMsg = "";
+        File file = null;
         Scanner in = new Scanner(System.in);
-        String message = in.nextLine();
+        Scanner fromFile = null;
+        String message = "";
         RSA3 rsa = new RSA3();
         String enc="";
         String dec="";
+        BigInteger mToPowE;
         
         /* Here is an infinite loop so that a user may enter as many 
         ** messages as his/her heart desires. The loop is terminated 
         ** upon the user entering "QUIT".
         */
-        while (message.compareTo(QUIT) != 0) {
-            if (message.compareTo("") != 0) {
+        while (message.compareTo("QUIT") != 0) {
+            if (message.length() != 0) {
+                if (message.compareTo("FILE") == 0) {
+                    message=in.nextLine();
+                    file =new File(message);
+                    try {
+                        fromFile = new Scanner(file);
+                        message = new Scanner(file).useDelimiter("\\Z").next();
+                        fromFile.close();
+                        fromFile=null;
+                    }
+                    catch (FileNotFoundException e) {
+                            message="FILE NOT FOUND";
+                    }
+                }
                 for(int i=0; i<message.length(); i+=199){
                     String msg="";
                     if(message.length()<=i+199){
@@ -61,16 +80,17 @@ public class RSA3 {
                     }
                     else msg=message.substring(i, i+199);
                     encryptedMsg = encrypt(msg, rsa.e, rsa.n);
-                    BigInteger mToPowE = new BigInteger(encryptedMsg);
+                    mToPowE = new BigInteger(encryptedMsg);
                     decryptedMsg = decrypt(mToPowE, rsa.d, rsa.n);
                     enc+=encryptedMsg;
                     dec+=decryptedMsg;
                 }
-
                 System.out.println("\nMessage:\n" + message + "\n");
                 System.out.println("Encrypted message:\n" + enc + "\n");
                 System.out.println("Decrypted message: \n" + dec + "\n");
-                System.out.println("\n------------------------------------------------------------------------------------------------\n\n");
+                System.out.println("\n------------------------------------------------------------------------------------------------\n");
+                enc = "";
+                dec = "";
             }
             message = in.nextLine();
         }
@@ -81,6 +101,9 @@ public class RSA3 {
     ** the message into relevant numbers based upon the ASCII table (with
     ** slight modifications). The number is then raised to the power 'E'
     ** modulo 'N', as per the RSA algorithm.
+    ** The loop in this method is responsible for appending (usually one)
+    ** zero to the result string to ensure a consistent length of 399,
+    ** which helps with the block encryption and decryption.
     */
     public static String encrypt(String M, BigInteger E, BigInteger N) {
         String msg = convertMessageToNum(M);
@@ -106,8 +129,15 @@ public class RSA3 {
         int a;
         for(int i = 0; i < str.length(); i++) {
             a=str.charAt(i);
+            
             if(a=='\n'){
-                a=97;
+                a=128;
+            }
+            if(a=='\r'){
+                a=129;
+            }
+            if(a=='\t'){
+                a=130;
             }
             a = a - 31;
             if (a < 10) {
@@ -149,8 +179,11 @@ public class RSA3 {
         int j = 1;
         for(int i = 0; i < firstResult.length(); i += 2) {
             checker = firstResult.substring(i, i+2);
-            test = Integer.parseInt(checker) + 31;
-            mar = (char)test;
+            test = Integer.parseInt(checker)+31; //Undo the shift from the conversion
+            if(test==128){test=10;}
+            if(test==129){test=13;}
+            if(test==130){test=9;}
+            mar = (char)test; //Type cast to char
             endResult = endResult + mar;
         }
         return endResult;
